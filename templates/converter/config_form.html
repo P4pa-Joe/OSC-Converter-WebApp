@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if config %}Edit{% else %}New{% endif %} Configuration{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-sliders"></i>
+                    {% if config %}Edit configuration{% else %}New configuration{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Name</label>
+                        {{ form.name }}
+                    </div>
+
+                    <h6 class="text-info"><i class="bi bi-arrow-down-circle"></i> RX (Receive)</h6>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="id_rx_ip" class="form-label">IP</label>
+                                {{ form.rx_ip }}
+                                <small class="text-muted">0.0.0.0 to listen on all interfaces</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="id_rx_port" class="form-label">Port</label>
+                                {{ form.rx_port }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.auto_start }}
+                        <label class="form-check-label" for="id_auto_start">Auto-start</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Save
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Configurations -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-sliders"></i> Configurations</h5>
+        <div>
+            <a href="{% url 'export_all_configs' %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Export all">
+                <i class="bi bi-upload"></i>
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Import" onclick="document.getElementById('import-file').click();">
+                <i class="bi bi-download"></i>
+            </button>
+            <a href="{% url 'config_new' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus"></i> New
+            </a>
+        </div>
+    </div>
+    <!-- Hidden import form -->
+    <form id="import-form" method="post" action="{% url 'import_configs' %}" enctype="multipart/form-data" style="display: none;">
+        {% csrf_token %}
+        <input type="file" id="import-file" name="file" accept=".json" onchange="document.getElementById('import-form').submit();">
+    </form>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Listen from</th>
+                        <th class="text-center">Dispatchers</th>
+                        <th class="text-center">Control</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cfg in configs %}
+                    <tr>
+                        <td>{{ cfg.name }}</td>
+                        <td><code>{{ cfg.rx_ip }}:{{ cfg.rx_port }}</code></td>
+                        <td class="text-center">
+                            <a href="{% url 'dispatchers' cfg.pk %}" class="btn btn-sm btn-outline-primary">
+                                {{ cfg.dispatcher_count }} <i class="bi bi-diagram-3"></i>
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            {% if cfg.pk in running_configs %}
+                                <form method="post" action="{% url 'service_stop_config' cfg.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Stop">
+                                        <i class="bi bi-stop-fill"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'service_restart_config' cfg.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="Restart">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'service_start_config' cfg.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" data-bs-toggle="tooltip" title="Start">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'config_edit' cfg.pk %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="{% url 'config_delete' cfg.pk %}" class="d-inline" onsubmit="return confirm('Delete this configuration?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No configuration</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Logs -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-terminal"></i> Logs</h5>
+        <div>
+            <a href="{% url 'export_logs' %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Export">
+                <i class="bi bi-upload"></i>
+            </a>
+            <span id="status-badge" class="badge {% if running_configs %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if running_configs %}{{ running_configs|length }} running{% else %}Stopped{% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Tabs for each configuration -->
+        <ul class="nav nav-tabs" id="logTabs" role="tablist">
+            {% for cfg in configs %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-{{ cfg.pk }}" data-bs-toggle="tab" data-bs-target="#logs-{{ cfg.pk }}" type="button" role="tab" aria-controls="logs-{{ cfg.pk }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                    <span class="config-status-dot" id="status-dot-{{ cfg.pk }}" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background-color: {% if cfg.pk in running_configs %}#28a745{% else %}#6c757d{% endif %};"></span>
+                    {{ cfg.name }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content" id="logTabsContent">
+            {% for cfg in configs %}
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="logs-{{ cfg.pk }}" role="tabpanel" aria-labelledby="tab-{{ cfg.pk }}">
+                <div class="log-container" id="log-container-{{ cfg.pk }}">
+                    <div class="log-entry">No logs</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="log-container">
+                <div class="log-entry">No configuration available</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Config IDs for reference
+    const configIds = [{% for cfg in configs %}{{ cfg.pk }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    // Function to refresh logs and status
+    function refreshLogs() {
+        fetch('{% url "service_status" %}')
+            .then(response => response.json())
+            .then(data => {
+                // Update status badge
+                const badge = document.getElementById('status-badge');
+                const runningConfigs = data.running_configs || [];
+                const count = runningConfigs.length;
+                badge.className = 'badge ' + (count > 0 ? 'bg-success' : 'bg-secondary');
+                badge.textContent = count > 0 ? count + ' running' : 'Stopped';
+
+                // Update status dots on tabs
+                configIds.forEach(function(configId) {
+                    const dot = document.getElementById('status-dot-' + configId);
+                    if (dot) {
+                        const isRunning = runningConfigs.includes(configId);
+                        dot.style.backgroundColor = isRunning ? '#28a745' : '#6c757d';
+                    }
+                });
+
+                // Update logs per configuration
+                const logsByConfig = data.logs_by_config || {};
+                configIds.forEach(function(configId) {
+                    const container = document.getElementById('log-container-' + configId);
+                    if (container) {
+                        const logs = logsByConfig[configId.toString()] || [];
+                        if (logs.length > 0) {
+                            container.innerHTML = logs.map(log => `<div class="log-entry">${log}</div>`).join('');
+                            container.scrollTop = container.scrollHeight;
+                        } else {
+                            container.innerHTML = '<div class="log-entry">No logs</div>';
+                        }
+                    }
+                });
+            });
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    document.querySelectorAll('.alert.auto-dismiss').forEach(function(alert) {
+        setTimeout(function() {
+            var bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+            bsAlert.close();
+        }, 5000);
+    });
+
+    // Load logs immediately on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshLogs();
+
+        // Ensure first tab is active if exists
+        if (configIds.length > 0) {
+            const firstTab = document.getElementById('tab-' + configIds[0]);
+            if (firstTab && !firstTab.classList.contains('active')) {
+                new bootstrap.Tab(firstTab).show();
+            }
+        }
+    });
+
+    // Auto-refresh logs every 2 seconds
+    setInterval(refreshLogs, 2000);
+</script>
+{% endblock %}
