@@ -100,5 +100,4 @@ sudo journalctl -u osc-converter-webapp -f
 - **Import dispatchers**: Import dispatchers into an existing configuration
 
 ## TODO
-- Logs must be flagged for tabs that have not been opened.
-- Center the 'New Configuration' 'Save' and 'Cancel' buttons.
+
