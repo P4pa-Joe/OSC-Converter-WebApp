@@ -17,6 +17,7 @@ def init_default_config():
         defaults={
             'rx_ip': '0.0.0.0',
             'rx_port': 9000,
+            'auto_start': True,
         }
     )
 
@@ -25,13 +26,7 @@ def init_default_config():
 
         # Dispatchers par défaut (osc_input, tx_ip, tx_port, osc_output)
         default_dispatchers = [
-            ("/ext/master/faderpos", "127.0.0.1", 12321, "/varset/masterLevel"),
-            ("/ext/master/mute", "127.0.0.1", 12321, "/varset/masterMute"),
-            ("/ext/rev/master/faderpos", "127.0.0.1", 12321, "/varset/reverbLevel"),
-            ("/ext/rev/master/mute", "127.0.0.1", 12321, "/varset/reverbMute"),
-            ("/1/volume2", "127.0.0.1", 12321, "/varset/TotalMix_AES_Volume"),
-            ("/1/volume2Val", "127.0.0.1", 12321, "/varset/TotalMix_AES_VolumeVal"),
-            ("/1/mute/1/2", "127.0.0.1", 12321, "/varset/TotalMix_AES_Mute"),
+            ("/osc/input", "127.0.0.1", 12321, "/osc/ouput"),
         ]
 
         for osc_input, tx_ip, tx_port, osc_output in default_dispatchers:

@@ -25,6 +25,8 @@ def dashboard(request):
 
 def config_edit(request, pk=None):
     """Edit or create a configuration"""
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if pk:
         config = get_object_or_404(OSCConfig, pk=pk)
     else:
@@ -34,10 +36,22 @@ def config_edit(request, pk=None):
         form = OSCConfigForm(request.POST, instance=config)
         if form.is_valid():
             config = form.save()
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Configuration saved'})
             messages.success(request, 'Configuration saved')
             return redirect('dashboard')
+        else:
+            if is_ajax:
+                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
     else:
         form = OSCConfigForm(instance=config)
+
+    # For AJAX requests, return partial template
+    if is_ajax:
+        return render(request, 'converter/partials/config_form_content.html', {
+            'form': form,
+            'config': config,
+        })
 
     return render(request, 'converter/config_form.html', {
         'form': form,
@@ -85,6 +99,7 @@ def dispatchers(request, config_pk):
 
 def dispatcher_edit(request, pk):
     """Edit a dispatcher"""
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     dispatcher = get_object_or_404(OSCDispatcher, pk=pk)
     show_restart_modal = False
 
@@ -92,15 +107,35 @@ def dispatcher_edit(request, pk):
         form = OSCDispatcherForm(request.POST, instance=dispatcher)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Dispatcher updated')
-            # Check if config is running
             config_pk = dispatcher.config.pk
-            if config_pk in osc_service.get_status()['running_configs']:
+            needs_restart = config_pk in osc_service.get_status()['running_configs']
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Dispatcher updated',
+                    'needs_restart': needs_restart,
+                    'config_pk': config_pk,
+                    'config_name': dispatcher.config.name
+                })
+
+            messages.success(request, 'Dispatcher updated')
+            if needs_restart:
                 show_restart_modal = True
             else:
                 return redirect('dispatchers', config_pk=config_pk)
+        else:
+            if is_ajax:
+                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
     else:
         form = OSCDispatcherForm(instance=dispatcher)
+
+    # For AJAX requests, return partial template
+    if is_ajax:
+        return render(request, 'converter/partials/dispatcher_form_content.html', {
+            'form': form,
+            'dispatcher': dispatcher,
+        })
 
     return render(request, 'converter/dispatcher_form.html', {
         'form': form,
@@ -426,6 +461,10 @@ def import_dispatchers(request, config_pk):
             imported += 1
 
         messages.success(request, f'Imported {imported} dispatcher(s)')
+        # Check if config is running
+        if config_pk in osc_service.get_status()['running_configs']:
+            from django.urls import reverse
+            return redirect(reverse('dispatchers', kwargs={'config_pk': config_pk}) + '?restart_needed=1')
         return redirect('dispatchers', config_pk=config_pk)
 
     except json.JSONDecodeError:

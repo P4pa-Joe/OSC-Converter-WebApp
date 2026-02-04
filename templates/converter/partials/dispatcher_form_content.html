@@ -1,0 +1,29 @@
+<form method="post" id="dispatcherForm">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label for="id_osc_input" class="form-label">Input message</label>
+        {{ form.osc_input }}
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-8">
+            <label for="id_tx_ip" class="form-label">Destination IP</label>
+            {{ form.tx_ip }}
+        </div>
+        <div class="col-4">
+            <label for="id_tx_port" class="form-label">Port</label>
+            {{ form.tx_port }}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="id_osc_output" class="form-label">OSC Address (output)</label>
+        {{ form.osc_output }}
+    </div>
+
+    <div class="mb-3 form-check">
+        {{ form.is_enabled }}
+        <label class="form-check-label" for="id_is_enabled">Enabled</label>
+    </div>
+</form>

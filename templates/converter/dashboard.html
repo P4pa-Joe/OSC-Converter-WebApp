@@ -12,9 +12,9 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Import" onclick="document.getElementById('import-file').click();">
                 <i class="bi bi-download"></i>
             </button>
-            <a href="{% url 'config_new' %}" class="btn btn-sm btn-primary">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openConfigModal()">
                 <i class="bi bi-plus"></i> New
-            </a>
+            </button>
         </div>
     </div>
     <!-- Hidden import form -->
@@ -68,9 +68,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'config_edit' cfg.pk %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="openConfigModal({{ cfg.pk }})" data-bs-toggle="tooltip" title="Edit">
                                 <i class="bi bi-pencil"></i>
-                            </a>
+                            </button>
                             <form method="post" action="{% url 'config_delete' cfg.pk %}" class="d-inline" onsubmit="return confirm('Delete this configuration?');">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete">
@@ -108,9 +108,10 @@
         <ul class="nav nav-tabs" id="logTabs" role="tablist">
             {% for cfg in configs %}
             <li class="nav-item" role="presentation">
-                <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-{{ cfg.pk }}" data-bs-toggle="tab" data-bs-target="#logs-{{ cfg.pk }}" type="button" role="tab" aria-controls="logs-{{ cfg.pk }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-{{ cfg.pk }}" data-bs-toggle="tab" data-bs-target="#logs-{{ cfg.pk }}" type="button" role="tab" aria-controls="logs-{{ cfg.pk }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" onclick="clearNewLogsBadge({{ cfg.pk }})">
                     <span class="config-status-dot" id="status-dot-{{ cfg.pk }}" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background-color: {% if cfg.pk in running_configs %}#28a745{% else %}#6c757d{% endif %};"></span>
                     {{ cfg.name }}
+                    <span class="badge bg-danger new-logs-badge" id="new-logs-badge-{{ cfg.pk }}" style="display: none; margin-left: 5px; font-size: 0.7em;"></span>
                 </button>
             </li>
             {% endfor %}
@@ -140,12 +141,63 @@
         </div>
     {% endfor %}
 {% endif %}
+
+<!-- Configuration Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title w-100 text-center" id="configModalTitle">
+                    <i class="bi bi-sliders"></i> <span id="configModalTitleText">New Configuration</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="configModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">
+                    <i class="bi bi-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     // Config IDs for reference
     const configIds = [{% for cfg in configs %}{{ cfg.pk }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    // Track last seen log count per config for new log notifications
+    const lastSeenLogCount = {};
+    configIds.forEach(id => lastSeenLogCount[id] = 0);
+
+    // Track the currently active tab
+    let activeTabConfigId = configIds.length > 0 ? configIds[0] : null;
+
+    // Function to clear new logs badge when tab is clicked
+    function clearNewLogsBadge(configId) {
+        activeTabConfigId = configId;
+        const badge = document.getElementById('new-logs-badge-' + configId);
+        if (badge) {
+            badge.style.display = 'none';
+            badge.textContent = '';
+        }
+        // Update last seen count to current count
+        const container = document.getElementById('log-container-' + configId);
+        if (container) {
+            lastSeenLogCount[configId] = container.querySelectorAll('.log-entry').length;
+        }
+    }
 
     // Function to refresh logs and status
     function refreshLogs() {
@@ -174,11 +226,29 @@
                     const container = document.getElementById('log-container-' + configId);
                     if (container) {
                         const logs = logsByConfig[configId.toString()] || [];
+                        const currentLogCount = logs.length;
+                        const previousLogCount = lastSeenLogCount[configId] || 0;
+
                         if (logs.length > 0) {
                             container.innerHTML = logs.map(log => `<div class="log-entry">${log}</div>`).join('');
                             container.scrollTop = container.scrollHeight;
                         } else {
                             container.innerHTML = '<div class="log-entry">No logs</div>';
+                        }
+
+                        // Show badge for new logs on inactive tabs
+                        if (configId !== activeTabConfigId && currentLogCount > previousLogCount) {
+                            const newLogsCount = currentLogCount - previousLogCount;
+                            const badge = document.getElementById('new-logs-badge-' + configId);
+                            if (badge) {
+                                badge.style.display = 'inline';
+                                badge.textContent = '+' + newLogsCount;
+                            }
+                        }
+
+                        // Update last seen count only for active tab
+                        if (configId === activeTabConfigId) {
+                            lastSeenLogCount[configId] = currentLogCount;
                         }
                     }
                 });
@@ -195,7 +265,19 @@
 
     // Load logs immediately on page load
     document.addEventListener('DOMContentLoaded', function() {
-        refreshLogs();
+        // First refresh to get initial log counts
+        fetch('{% url "service_status" %}')
+            .then(response => response.json())
+            .then(data => {
+                const logsByConfig = data.logs_by_config || {};
+                // Initialize last seen counts with current counts (so we don't show badges for existing logs)
+                configIds.forEach(function(configId) {
+                    const logs = logsByConfig[configId.toString()] || [];
+                    lastSeenLogCount[configId] = logs.length;
+                });
+                // Then do normal refresh
+                refreshLogs();
+            });
 
         // Ensure first tab is active if exists
         if (configIds.length > 0) {
@@ -203,10 +285,74 @@
             if (firstTab && !firstTab.classList.contains('active')) {
                 new bootstrap.Tab(firstTab).show();
             }
+            activeTabConfigId = configIds[0];
         }
+
+        // Listen for tab changes via Bootstrap events
+        document.querySelectorAll('#logTabs button[data-bs-toggle="tab"]').forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                const targetId = event.target.getAttribute('data-bs-target');
+                const match = targetId.match(/logs-(\d+)/);
+                if (match) {
+                    clearNewLogsBadge(parseInt(match[1]));
+                }
+            });
+        });
     });
 
     // Auto-refresh logs every 2 seconds
     setInterval(refreshLogs, 2000);
+
+    // Configuration Modal
+    let currentConfigPk = null;
+
+    function openConfigModal(pk = null) {
+        currentConfigPk = pk;
+        const url = pk ? `/config/${pk}/` : '/config/new/';
+        const title = pk ? 'Edit Configuration' : 'New Configuration';
+
+        document.getElementById('configModalTitleText').textContent = title;
+        document.getElementById('configModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        const modal = new bootstrap.Modal(document.getElementById('configModal'));
+        modal.show();
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('configModalBody').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('configModalBody').innerHTML = '<div class="alert alert-danger">Error loading form</div>';
+        });
+    }
+
+    function saveConfig() {
+        const form = document.getElementById('configForm');
+        if (!form) return;
+
+        const url = currentConfigPk ? `/config/${currentConfigPk}/` : '/config/new/';
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+                location.reload();
+            } else {
+                alert('Error: ' + JSON.stringify(data.errors));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
 </script>
 {% endblock %}

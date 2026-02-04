@@ -107,10 +107,11 @@
                             </button>
                         </td>
                         <td>
-                            <a href="{% url 'dispatcher_edit' d.pk %}" class="btn btn-sm btn-outline-primary"
-                               data-bs-toggle="tooltip" title="Edit">
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                    onclick="openEditDispatcherModal({{ d.pk }})"
+                                    data-bs-toggle="tooltip" title="Edit">
                                 <i class="bi bi-pencil"></i>
-                            </a>
+                            </button>
                             <form method="post" action="{% url 'dispatcher_delete' d.pk %}" class="d-inline" onsubmit="return confirm('Delete this dispatcher?');">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-outline-danger"
@@ -157,6 +158,35 @@
     </div>
 </div>
 
+<!-- Edit Dispatcher Modal -->
+<div class="modal fade" id="editDispatcherModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title w-100 text-center">
+                    <i class="bi bi-pencil"></i> Edit Dispatcher
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editDispatcherModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveDispatcher()">
+                    <i class="bi bi-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Restart Required Modal -->
 <div class="modal fade" id="restartModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
@@ -165,14 +195,14 @@
                 <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Restart Required</h5>
             </div>
             <div class="modal-body">
-                <p>The configuration <strong>{{ config.name }}</strong> is currently running.</p>
+                <p>The configuration <strong id="restartConfigName">{{ config.name }}</strong> is currently running.</p>
                 <p>You need to restart it for the changes to take effect.</p>
             </div>
             <div class="modal-footer">
-                <a href="{% url 'dispatchers' config.pk %}" class="btn btn-secondary">
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='{% url 'dispatchers' config.pk %}'">
                     <i class="bi bi-clock"></i> Restart Later
-                </a>
-                <form method="post" action="{% url 'service_restart_config' config.pk %}" class="d-inline">
+                </button>
+                <form method="post" action="{% url 'service_restart_config' config.pk %}" class="d-inline" id="restartForm">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-warning">
                         <i class="bi bi-arrow-repeat"></i> Restart Now
@@ -214,6 +244,61 @@
                 alert(data.message);
             } else {
                 alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+
+    // Edit Dispatcher Modal
+    let editingDispatcherId = null;
+
+    function openEditDispatcherModal(pk) {
+        editingDispatcherId = pk;
+        const url = `/dispatcher/${pk}/edit/`;
+
+        document.getElementById('editDispatcherModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        const modal = new bootstrap.Modal(document.getElementById('editDispatcherModal'));
+        modal.show();
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('editDispatcherModalBody').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('editDispatcherModalBody').innerHTML = '<div class="alert alert-danger">Error loading form</div>';
+        });
+    }
+
+    function saveDispatcher() {
+        const form = document.getElementById('dispatcherForm');
+        if (!form) return;
+
+        const url = `/dispatcher/${editingDispatcherId}/edit/`;
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('editDispatcherModal')).hide();
+                if (data.needs_restart) {
+                    document.getElementById('restartConfigName').textContent = data.config_name;
+                    new bootstrap.Modal(document.getElementById('restartModal')).show();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Error: ' + JSON.stringify(data.errors));
             }
         })
         .catch(error => {

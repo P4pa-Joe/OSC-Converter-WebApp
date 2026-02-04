@@ -71,7 +71,12 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # App Version
-APP_VERSION = '26.1'
+APP_VERSION = '26.2'
+
+# Developer Info
+DEVELOPER_NAME = 'PAVAGEAU Sébastien'
+DEVELOPER_EMAIL = 'seb.pav@wanadoo.fr'
+DEVELOPER_GITHUB = 'https://github.com/P4pa-Joe/OSC-Converter-WebApp'
 
 # OSC Config
 OSC_LOG_FILE = os.path.join(BASE_DIR, 'osc-converter.log')

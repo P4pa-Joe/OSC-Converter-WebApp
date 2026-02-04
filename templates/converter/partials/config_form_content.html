@@ -1,0 +1,30 @@
+<form method="post" id="configForm">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label for="id_name" class="form-label">Name</label>
+        {{ form.name }}
+    </div>
+
+    <h6 class="text-info"><i class="bi bi-arrow-down-circle"></i> RX (Receive)</h6>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <label for="id_rx_ip" class="form-label">IP</label>
+                {{ form.rx_ip }}
+                <small class="text-muted">0.0.0.0 to listen on all interfaces</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="mb-3">
+                <label for="id_rx_port" class="form-label">Port</label>
+                {{ form.rx_port }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3 form-check">
+        {{ form.auto_start }}
+        <label class="form-check-label" for="id_auto_start">Auto-start</label>
+    </div>
+</form>

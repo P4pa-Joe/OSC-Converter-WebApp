@@ -12,6 +12,11 @@ A Django-based web application for routing and converting OSC (Open Sound Contro
 - Export/Import configurations as JSON
 - Test dispatchers directly from the interface
 
+## Tested Platforms
+
+- Raspbian "Bookworm"
+- Debian 13.3.0 amd64 "Trixie"
+
 ## Quick Installation (Recommended)
 
 The installation script handles everything automatically:
@@ -98,6 +103,3 @@ sudo journalctl -u osc-converter-webapp -f
 - **Import**: Upload a JSON file to restore configurations
 - **Export dispatchers**: Export only the dispatchers of a specific configuration
 - **Import dispatchers**: Import dispatchers into an existing configuration
-
-## TODO
-
