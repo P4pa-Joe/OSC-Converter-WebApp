@@ -61,6 +61,20 @@ python manage.py collectstatic --noinput 2>/dev/null || true
 echo -e "${GREEN}[7/7] Initializing default configuration...${NC}"
 python init_data.py
 
+# Ask for web interface port
+echo -e "${YELLOW}Sur quel port voulez-vous que l'interface web soit accessible? [8000]${NC}"
+read -r WEB_PORT
+WEB_PORT=${WEB_PORT:-8000}
+
+# Validate port number
+if ! [[ "$WEB_PORT" =~ ^[0-9]+$ ]] || [ "$WEB_PORT" -lt 1 ] || [ "$WEB_PORT" -gt 65535 ]; then
+    echo -e "${RED}Port invalide. Utilisation du port par défaut 8000.${NC}"
+    WEB_PORT=8000
+fi
+
+echo -e "${GREEN}Port configuré: $WEB_PORT${NC}"
+echo
+
 # Ask to install systemd service
 echo -e "${YELLOW}Do you want to install the systemd service? (y/n)${NC}"
 read -r INSTALL_SERVICE
@@ -70,7 +84,7 @@ if [ "$INSTALL_SERVICE" = "y" ] || [ "$INSTALL_SERVICE" = "Y" ]; then
 
     # Update service file with correct path
     sed -i "s|WorkingDirectory=.*|WorkingDirectory=$INSTALL_DIR|g" osc-converter-webapp.service
-    sed -i "s|ExecStart=.*|ExecStart=$INSTALL_DIR/venv/bin/gunicorn --bind 0.0.0.0:8000 --workers 1 osc_converter.wsgi:application|g" osc-converter-webapp.service
+    sed -i "s|ExecStart=.*|ExecStart=$INSTALL_DIR/venv/bin/gunicorn --bind 0.0.0.0:$WEB_PORT --workers 1 osc_converter.wsgi:application|g" osc-converter-webapp.service
 
     # Fix permissions for www-data user (service runs as www-data)
     # SQLite needs write access to the directory for journal/WAL files
@@ -97,10 +111,10 @@ else
     echo -e "To start the server manually:"
     echo -e "  ${YELLOW}cd $INSTALL_DIR${NC}"
     echo -e "  ${YELLOW}source venv/bin/activate${NC}"
-    echo -e "  ${YELLOW}python manage.py runserver 0.0.0.0:8000${NC}"
+    echo -e "  ${YELLOW}python manage.py runserver 0.0.0.0:$WEB_PORT${NC}"
 fi
 
 echo
-echo -e "Access the web interface at: ${GREEN}http://localhost:8000${NC}"
+echo -e "Access the web interface at: ${GREEN}http://localhost:$WEB_PORT${NC}"
 echo -e "${GREEN}Installation complete!${NC}"
 exit 0
