@@ -58,6 +58,7 @@ def dispatchers(request, config_pk):
     """Manage dispatchers for a configuration"""
     config = get_object_or_404(OSCConfig, pk=config_pk)
     dispatcher_list = config.dispatchers.all()
+    show_restart_modal = request.GET.get('restart_needed') == '1'
 
     if request.method == 'POST':
         form = OSCDispatcherForm(request.POST)
@@ -66,7 +67,11 @@ def dispatchers(request, config_pk):
             dispatcher.config = config
             dispatcher.save()
             messages.success(request, 'Dispatcher added')
-            return redirect('dispatchers', config_pk=config_pk)
+            # Check if config is running
+            if config_pk in osc_service.get_status()['running_configs']:
+                show_restart_modal = True
+            else:
+                return redirect('dispatchers', config_pk=config_pk)
     else:
         form = OSCDispatcherForm()
 
@@ -74,35 +79,47 @@ def dispatchers(request, config_pk):
         'config': config,
         'dispatchers': dispatcher_list,
         'form': form,
+        'show_restart_modal': show_restart_modal,
     })
 
 
 def dispatcher_edit(request, pk):
     """Edit a dispatcher"""
     dispatcher = get_object_or_404(OSCDispatcher, pk=pk)
+    show_restart_modal = False
 
     if request.method == 'POST':
         form = OSCDispatcherForm(request.POST, instance=dispatcher)
         if form.is_valid():
             form.save()
             messages.success(request, 'Dispatcher updated')
-            return redirect('dispatchers', config_pk=dispatcher.config.pk)
+            # Check if config is running
+            config_pk = dispatcher.config.pk
+            if config_pk in osc_service.get_status()['running_configs']:
+                show_restart_modal = True
+            else:
+                return redirect('dispatchers', config_pk=config_pk)
     else:
         form = OSCDispatcherForm(instance=dispatcher)
 
     return render(request, 'converter/dispatcher_form.html', {
         'form': form,
         'dispatcher': dispatcher,
+        'show_restart_modal': show_restart_modal,
     })
 
 
 def dispatcher_delete(request, pk):
     """Delete a dispatcher"""
+    from django.urls import reverse
     dispatcher = get_object_or_404(OSCDispatcher, pk=pk)
     config_pk = dispatcher.config.pk
     if request.method == 'POST':
         dispatcher.delete()
         messages.success(request, 'Dispatcher deleted')
+        # Check if config is running
+        if config_pk in osc_service.get_status()['running_configs']:
+            return redirect(reverse('dispatchers', kwargs={'config_pk': config_pk}) + '?restart_needed=1')
     return redirect('dispatchers', config_pk=config_pk)
 
 

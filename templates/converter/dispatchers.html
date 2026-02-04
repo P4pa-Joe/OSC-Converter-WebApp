@@ -156,6 +156,32 @@
         </div>
     </div>
 </div>
+
+<!-- Restart Required Modal -->
+<div class="modal fade" id="restartModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Restart Required</h5>
+            </div>
+            <div class="modal-body">
+                <p>The configuration <strong>{{ config.name }}</strong> is currently running.</p>
+                <p>You need to restart it for the changes to take effect.</p>
+            </div>
+            <div class="modal-footer">
+                <a href="{% url 'dispatchers' config.pk %}" class="btn btn-secondary">
+                    <i class="bi bi-clock"></i> Restart Later
+                </a>
+                <form method="post" action="{% url 'service_restart_config' config.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-arrow-repeat"></i> Restart Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -194,5 +220,12 @@
             alert('Error: ' + error);
         });
     }
+
+    {% if show_restart_modal %}
+    // Show restart modal on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        new bootstrap.Modal(document.getElementById('restartModal')).show();
+    });
+    {% endif %}
 </script>
 {% endblock %}
