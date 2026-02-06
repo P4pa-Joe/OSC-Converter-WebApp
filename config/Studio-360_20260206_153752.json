@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "export_type": "full",
+  "exported_at": "2026-02-06T15:37:52.951994",
+  "configurations": [
+    {
+      "name": "Default",
+      "rx_ip": "0.0.0.0",
+      "rx_port": 9000,
+      "auto_start": true,
+      "dispatchers": [
+        {
+          "osc_input": "/1/mute/1/2",
+          "osc_output": "/custom-variable/TotalMix_AES_Mute/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        },
+        {
+          "osc_input": "/1/volume2",
+          "osc_output": "/custom-variable/TotalMix_AES_Volume/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        },
+        {
+          "osc_input": "/1/volume2Val",
+          "osc_output": "/custom-variable/TotalMix_AES_VolumeVal/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        },
+        {
+          "osc_input": "/ext/master/faderpos",
+          "osc_output": "/custom-variable/masterLevel/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        },
+        {
+          "osc_input": "/ext/master/mute",
+          "osc_output": "/custom-variable/masterMute/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        },
+        {
+          "osc_input": "/ext/rev/master/faderpos",
+          "osc_output": "/custom-variable/reverbLevel/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        },
+        {
+          "osc_input": "/ext/rev/master/mute",
+          "osc_output": "/custom-variable/reverbMute/value",
+          "tx_ip": "127.0.0.1",
+          "tx_port": 12321,
+          "is_enabled": true
+        }
+      ]
+    }
+  ]
+}

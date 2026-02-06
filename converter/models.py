@@ -7,6 +7,7 @@ class OSCConfig(models.Model):
     rx_ip = models.GenericIPAddressField(default="0.0.0.0", verbose_name="IP RX (écoute)")
     rx_port = models.PositiveIntegerField(default=9000, verbose_name="Port RX")
     auto_start = models.BooleanField(default=False, verbose_name="Auto-start")
+    show_unmapped = models.BooleanField(default=False, verbose_name="Show unmapped logs")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

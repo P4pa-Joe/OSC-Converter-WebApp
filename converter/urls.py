@@ -23,6 +23,7 @@ urlpatterns = [
     path('service/restart/', views.service_restart, name='service_restart'),
     path('service/restart/<int:config_pk>/', views.service_restart_config, name='service_restart_config'),
     path('api/status/', views.service_status, name='service_status'),
+    path('api/config/<int:pk>/toggle-unmapped/', views.toggle_show_unmapped, name='toggle_show_unmapped'),
     path('logs/export/', views.export_logs, name='export_logs'),
 
     # Export / Import

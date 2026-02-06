@@ -229,11 +229,24 @@ def service_status(request):
     # Convert config_pk keys to strings for JSON
     logs_by_config = {str(k): v for k, v in status.get('logs_by_config', {}).items()}
 
+    # Include show_unmapped setting per config
+    show_unmapped = {str(cfg.pk): cfg.show_unmapped for cfg in OSCConfig.objects.all()}
+
     return JsonResponse({
         'running_configs': status['running_configs'],
         'logs_by_config': logs_by_config,
         'global_logs': status.get('global_logs', []),
+        'show_unmapped': show_unmapped,
     })
+
+
+@require_POST
+def toggle_show_unmapped(request, pk):
+    """Toggle show_unmapped setting for a configuration"""
+    config = get_object_or_404(OSCConfig, pk=pk)
+    config.show_unmapped = not config.show_unmapped
+    config.save(update_fields=['show_unmapped'])
+    return JsonResponse({'show_unmapped': config.show_unmapped})
 
 
 @require_POST
