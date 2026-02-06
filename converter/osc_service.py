@@ -61,6 +61,8 @@ class OSCService:
         """Create a default handler for unmapped messages"""
         def handler(addr, *args):
             value = args[0] if args else ""
+            if addr == "/":
+                return
             self._log(f"[Rx] {addr} = {value} (unmapped)", config_pk)
         return handler
 
@@ -69,6 +71,8 @@ class OSCService:
             if not args:
                 return
             value = args[0]
+            if unused_addr == "/":
+                return
             self._log(f"[Rx] {unused_addr} → [Tx] {tx_ip}:{tx_port} @ {osc_output} = {value}", config_pk)
             client = self._get_client(tx_ip, tx_port)
             client.send_message(osc_output, value)
