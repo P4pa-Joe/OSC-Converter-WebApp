@@ -71,7 +71,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # App Version
-APP_VERSION = '26.2'
+APP_VERSION = '26.3'
 
 # Developer Info
 DEVELOPER_NAME = 'PAVAGEAU Sébastien'
