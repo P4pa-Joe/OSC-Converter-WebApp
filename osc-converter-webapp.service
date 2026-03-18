@@ -7,10 +7,10 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/osc-converter-webapp
-ExecStart=/opt/osc-converter-webapp/venv/bin/gunicorn --bind 0.0.0.0:8000 --workers 1 osc_converter.wsgi:application
+ExecStart=/opt/osc-converter-webapp/venv/bin/gunicorn --bind 0.0.0.0:8000 --workers 1 osc_converter_webapp.wsgi:application
 Restart=always
 RestartSec=5
-Environment="DJANGO_SETTINGS_MODULE=osc_converter.settings"
+Environment="DJANGO_SETTINGS_MODULE=osc_converter_webapp.settings"
 
 [Install]
 WantedBy=multi-user.target

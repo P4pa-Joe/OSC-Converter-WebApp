@@ -1,0 +1,402 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<!-- Configurations -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-sliders"></i> Configurations</h5>
+        <div>
+            <a href="{% url 'export_all_configs' %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Export all">
+                <i class="bi bi-upload"></i>
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Import" onclick="document.getElementById('import-file').click();">
+                <i class="bi bi-download"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="openConfigModal()">
+                <i class="bi bi-plus"></i> New
+            </button>
+        </div>
+    </div>
+    <!-- Hidden import form -->
+    <form id="import-form" method="post" action="{% url 'import_configs' %}" enctype="multipart/form-data" class="hidden">
+        {% csrf_token %}
+        <input type="file" id="import-file" name="file" accept=".json" onchange="document.getElementById('import-form').submit();">
+    </form>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Listen from</th>
+                        <th class="text-center">Dispatchers</th>
+                        <th class="text-center">Control</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cfg in configs %}
+                    <tr>
+                        <td>{{ cfg.name }}</td>
+                        <td><code>{{ cfg.rx_ip }}:{{ cfg.rx_port }}</code></td>
+                        <td class="text-center">
+                            <a href="{% url 'dispatchers' cfg.pk %}" class="btn btn-sm btn-outline-primary">
+                                {{ cfg.dispatcher_count }} <i class="bi bi-diagram-3"></i>
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            {% if cfg.pk in running_configs %}
+                                <form method="post" action="{% url 'service_stop_config' cfg.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Stop">
+                                        <i class="bi bi-stop-fill"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'service_restart_config' cfg.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="Restart">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'service_start_config' cfg.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" data-bs-toggle="tooltip" title="Start">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="openConfigModal({{ cfg.pk }})" data-bs-toggle="tooltip" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="post" action="{% url 'config_delete' cfg.pk %}" class="d-inline" onsubmit="return confirm('Delete this configuration?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No configuration</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Logs -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-terminal"></i> Logs</h5>
+        <div>
+            <a href="{% url 'export_logs' %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Export">
+                <i class="bi bi-upload"></i>
+            </a>
+            <span id="status-badge" class="badge {% if running_configs %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if running_configs %}{{ running_configs|length }} running{% else %}Stopped{% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Tabs for each configuration -->
+        <ul class="nav nav-tabs" id="logTabs" role="tablist">
+            {% for cfg in configs %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-{{ cfg.pk }}" data-bs-toggle="tab" data-bs-target="#logs-{{ cfg.pk }}" type="button" role="tab" aria-controls="logs-{{ cfg.pk }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" onclick="clearNewLogsBadge({{ cfg.pk }})">
+                    <span class="config-status-dot" id="status-dot-{{ cfg.pk }}" style="background-color: {% if cfg.pk in running_configs %}#28a745{% else %}#6c757d{% endif %};"></span>
+                    {{ cfg.name }}
+                    <span class="badge bg-danger new-logs-badge" id="new-logs-badge-{{ cfg.pk }}"></span>
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="d-flex justify-content-end py-1 px-2 log-controls">
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="checkbox" id="showUnmapped">
+                <label class="form-check-label text-white-50 show-unmapped-label" for="showUnmapped">Show unmapped</label>
+            </div>
+        </div>
+        <div class="tab-content" id="logTabsContent">
+            {% for cfg in configs %}
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="logs-{{ cfg.pk }}" role="tabpanel" aria-labelledby="tab-{{ cfg.pk }}">
+                <div class="log-container" id="log-container-{{ cfg.pk }}">
+                    <div class="log-entry">No logs</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="log-container">
+                <div class="log-entry">No configuration available</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Configuration Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title w-100 text-center" id="configModalTitle">
+                    <i class="bi bi-sliders"></i> <span id="configModalTitleText">New Configuration</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="configModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">
+                    <i class="bi bi-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Config IDs for reference
+    const configIds = [{% for cfg in configs %}{{ cfg.pk }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    // Track last seen log count per config for new log notifications
+    const lastSeenLogCount = {};
+    configIds.forEach(id => lastSeenLogCount[id] = 0);
+
+    // Track show_unmapped setting per config
+    const showUnmappedPerConfig = {};
+    configIds.forEach(id => showUnmappedPerConfig[id] = false);
+
+    // Track the currently active tab
+    let activeTabConfigId = configIds.length > 0 ? configIds[0] : null;
+
+    // Function to clear new logs badge when tab is clicked
+    function clearNewLogsBadge(configId) {
+        activeTabConfigId = configId;
+        const badge = document.getElementById('new-logs-badge-' + configId);
+        if (badge) {
+            badge.style.display = 'none';
+            badge.textContent = '';
+        }
+        // Update checkbox to match this config's setting
+        document.getElementById('showUnmapped').checked = showUnmappedPerConfig[configId] || false;
+        // Update last seen count to current count
+        const container = document.getElementById('log-container-' + configId);
+        if (container) {
+            lastSeenLogCount[configId] = container.querySelectorAll('.log-entry').length;
+        }
+    }
+
+    // Function to refresh logs and status
+    function refreshLogs() {
+        fetch('{% url "service_status" %}')
+            .then(response => response.json())
+            .then(data => {
+                // Update status badge
+                const badge = document.getElementById('status-badge');
+                const runningConfigs = data.running_configs || [];
+                const count = runningConfigs.length;
+                badge.className = 'badge ' + (count > 0 ? 'bg-success' : 'bg-secondary');
+                badge.textContent = count > 0 ? count + ' running' : 'Stopped';
+
+                // Update status dots on tabs
+                configIds.forEach(function(configId) {
+                    const dot = document.getElementById('status-dot-' + configId);
+                    if (dot) {
+                        const isRunning = runningConfigs.includes(configId);
+                        dot.style.backgroundColor = isRunning ? '#28a745' : '#6c757d';
+                    }
+                });
+
+                // Update show_unmapped settings from server
+                const serverUnmapped = data.show_unmapped || {};
+                configIds.forEach(function(configId) {
+                    if (serverUnmapped[configId.toString()] !== undefined) {
+                        showUnmappedPerConfig[configId] = serverUnmapped[configId.toString()];
+                    }
+                });
+
+                // Update logs per configuration
+                const logsByConfig = data.logs_by_config || {};
+                configIds.forEach(function(configId) {
+                    const container = document.getElementById('log-container-' + configId);
+                    if (container) {
+                        const allLogs = logsByConfig[configId.toString()] || [];
+                        const showUnmapped = showUnmappedPerConfig[configId] || false;
+                        const logs = showUnmapped ? allLogs : allLogs.filter(log => !log.includes('(unmapped)'));
+                        const currentLogCount = logs.length;
+                        const previousLogCount = lastSeenLogCount[configId] || 0;
+
+                        if (logs.length > 0) {
+                            container.innerHTML = logs.map(log => `<div class="log-entry">${log}</div>`).join('');
+                            container.scrollTop = container.scrollHeight;
+                        } else {
+                            container.innerHTML = '<div class="log-entry">No logs</div>';
+                        }
+
+                        // Show badge for new logs on inactive tabs
+                        if (configId !== activeTabConfigId && currentLogCount > previousLogCount) {
+                            const newLogsCount = currentLogCount - previousLogCount;
+                            const badge = document.getElementById('new-logs-badge-' + configId);
+                            if (badge) {
+                                badge.style.display = 'inline';
+                                badge.textContent = '+' + newLogsCount;
+                            }
+                        }
+
+                        // Update last seen count only for active tab
+                        if (configId === activeTabConfigId) {
+                            lastSeenLogCount[configId] = currentLogCount;
+                        }
+                    }
+                });
+            });
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    document.querySelectorAll('.alert.auto-dismiss').forEach(function(alert) {
+        setTimeout(function() {
+            var bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+            bsAlert.close();
+        }, 5000);
+    });
+
+    // Load logs immediately on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // First refresh to get initial log counts and settings
+        fetch('{% url "service_status" %}')
+            .then(response => response.json())
+            .then(data => {
+                const logsByConfig = data.logs_by_config || {};
+                const serverUnmapped = data.show_unmapped || {};
+                // Initialize last seen counts and show_unmapped settings
+                configIds.forEach(function(configId) {
+                    const logs = logsByConfig[configId.toString()] || [];
+                    lastSeenLogCount[configId] = logs.length;
+                    if (serverUnmapped[configId.toString()] !== undefined) {
+                        showUnmappedPerConfig[configId] = serverUnmapped[configId.toString()];
+                    }
+                });
+                // Sync checkbox with active config
+                if (activeTabConfigId !== null) {
+                    document.getElementById('showUnmapped').checked = showUnmappedPerConfig[activeTabConfigId] || false;
+                }
+                // Then do normal refresh
+                refreshLogs();
+            });
+
+        // Ensure first tab is active if exists
+        if (configIds.length > 0) {
+            const firstTab = document.getElementById('tab-' + configIds[0]);
+            if (firstTab && !firstTab.classList.contains('active')) {
+                new bootstrap.Tab(firstTab).show();
+            }
+            activeTabConfigId = configIds[0];
+        }
+
+        // Listen for tab changes via Bootstrap events
+        document.querySelectorAll('#logTabs button[data-bs-toggle="tab"]').forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                const targetId = event.target.getAttribute('data-bs-target');
+                const match = targetId.match(/logs-(\d+)/);
+                if (match) {
+                    clearNewLogsBadge(parseInt(match[1]));
+                }
+            });
+        });
+
+        // Save show_unmapped setting when checkbox changes
+        document.getElementById('showUnmapped').addEventListener('change', function() {
+            if (activeTabConfigId === null) return;
+            showUnmappedPerConfig[activeTabConfigId] = this.checked;
+            fetch(`/api/config/${activeTabConfigId}/toggle-unmapped/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            refreshLogs();
+        });
+    });
+
+    // Auto-refresh logs every 2 seconds
+    setInterval(refreshLogs, 2000);
+
+    // Configuration Modal
+    let currentConfigPk = null;
+
+    function openConfigModal(pk = null) {
+        currentConfigPk = pk;
+        const url = pk ? `/config/${pk}/` : '/config/new/';
+        const title = pk ? 'Edit Configuration' : 'New Configuration';
+
+        document.getElementById('configModalTitleText').textContent = title;
+        document.getElementById('configModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        const modal = new bootstrap.Modal(document.getElementById('configModal'));
+        modal.show();
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('configModalBody').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('configModalBody').innerHTML = '<div class="alert alert-danger">Error loading form</div>';
+        });
+    }
+
+    function saveConfig() {
+        const form = document.getElementById('configForm');
+        if (!form) return;
+
+        const url = currentConfigPk ? `/config/${currentConfigPk}/` : '/config/new/';
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+                location.reload();
+            } else {
+                alert('Error: ' + JSON.stringify(data.errors));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+</script>
+{% endblock %}

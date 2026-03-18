@@ -5,10 +5,10 @@ Script d'initialisation - Crée une configuration par défaut avec les dispatche
 import os
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'osc_converter.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'osc_converter_webapp.settings')
 django.setup()
 
-from converter.models import OSCConfig, OSCDispatcher
+from osc_converter_webapp.main.models import OSCConfig, OSCDispatcher
 
 def init_default_config():
     # Créer la config si elle n'existe pas

@@ -1,0 +1,33 @@
+body { background-color: #f4f6f9; color: #333; }
+.navbar { background-color: #4a6fa5 !important; }
+.card { background-color: #fff; border: 1px solid #dde2e8; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.card-header { background-color: #f8f9fa; border-bottom: 2px solid #4a6fa5; color: #333; }
+.btn-primary { background-color: #4a6fa5; border-color: #4a6fa5; }
+.btn-primary:hover { background-color: #3d5d8a; border-color: #3d5d8a; }
+.btn-success { background-color: #28a745; border-color: #28a745; }
+.btn-danger { background-color: #dc3545; border-color: #dc3545; }
+.navbar .btn-outline-light { color: #fff; border-color: #fff; }
+.navbar .btn-outline-light:hover { background-color: rgba(255,255,255,0.2); color: #fff; }
+.btn-outline-primary { color: #4a6fa5; border-color: #4a6fa5; }
+.btn-outline-primary:hover { background-color: #4a6fa5; color: #fff; }
+.table { color: #333; }
+.table-hover tbody tr:hover { background-color: #f1f3f5; }
+.form-control, .form-select { background-color: #fff; border-color: #ced4da; color: #333; }
+.form-control:focus, .form-select:focus { background-color: #fff; color: #333; border-color: #4a6fa5; box-shadow: 0 0 0 0.2rem rgba(74, 111, 165, 0.25); }
+.status-badge { font-size: 1rem; padding: 0.5rem 1rem; }
+.log-container { background-color: #2d3748; border-radius: 0 0 5px 5px; padding: 1rem; height: 350px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; }
+.nav-tabs { border-bottom: none; }
+.nav-tabs .nav-link { background-color: #e9ecef; border-color: #dee2e6; color: #495057; margin-right: 2px; }
+.nav-tabs .nav-link.active { background-color: #2d3748; color: #fff; border-color: #2d3748; }
+.nav-tabs .nav-link:hover:not(.active) { background-color: #dee2e6; }
+.tab-content { border: none; }
+.log-entry { margin: 0.2rem 0; color: #fff; }
+.alert { border: none; }
+code { background-color: #e9ecef; color: #c7254e; padding: 0.2rem 0.4rem; border-radius: 3px; }
+.badge.bg-success { background-color: #28a745 !important; }
+.badge.bg-secondary { background-color: #6c757d !important; }
+.hidden { display: none; }
+.config-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.new-logs-badge { display: none; margin-left: 5px; font-size: 0.7em; }
+.log-controls { background-color: #2d3748; border-radius: 0; }
+.show-unmapped-label { font-size: 0.8em; }

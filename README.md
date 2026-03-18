@@ -35,6 +35,14 @@ This script will:
 - Initialize default configuration
 - Optionally install and configure the systemd service
 
+## Uninstallation
+
+```bash
+sudo ./install.sh -u
+```
+
+This will stop and disable the systemd service, then remove the installation directory.
+
 ## Manual Installation
 
 If you prefer to install manually:
@@ -48,7 +56,7 @@ pip install -r requirements.txt
 ### 2. Initialize the database
 
 ```bash
-python manage.py makemigrations converter
+python manage.py makemigrations
 python manage.py migrate
 ```
 

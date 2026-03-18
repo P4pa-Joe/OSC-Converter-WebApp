@@ -12,6 +12,55 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+INSTALL_DIR="/opt/osc-converter-webapp"
+
+# --- Uninstall mode ---
+if [ "$1" = "-u" ]; then
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}  OSC Converter WebApp - Désinstallation${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+    echo
+
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}Erreur: Ce script doit être exécuté avec sudo${NC}"
+        echo -e "Usage: ${YELLOW}sudo ./install.sh -u${NC}"
+        echo
+        exit 1
+    fi
+
+    echo -e "${YELLOW}Êtes-vous sûr de vouloir désinstaller OSC Converter WebApp? (y/n)${NC}"
+    read -r CONFIRM
+    if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+        echo -e "${GREEN}Désinstallation annulée.${NC}"
+        exit 0
+    fi
+
+    # Stop and disable systemd service if it exists
+    if systemctl list-unit-files osc-converter-webapp.service &>/dev/null; then
+        echo -e "${GREEN}[1/3] Arrêt et désactivation du service systemd...${NC}"
+        systemctl stop osc-converter-webapp 2>/dev/null || true
+        systemctl disable osc-converter-webapp 2>/dev/null || true
+        rm -f /etc/systemd/system/osc-converter-webapp.service
+        systemctl daemon-reload
+    else
+        echo -e "${GREEN}[1/3] Aucun service systemd trouvé, ignoré.${NC}"
+    fi
+
+    # Remove installation directory
+    echo -e "${GREEN}[2/3] Suppression du répertoire d'installation ($INSTALL_DIR)...${NC}"
+    if [ -d "$INSTALL_DIR" ]; then
+        rm -rf "$INSTALL_DIR"
+        echo -e "${GREEN}Répertoire supprimé.${NC}"
+    else
+        echo -e "${YELLOW}Répertoire $INSTALL_DIR introuvable, ignoré.${NC}"
+    fi
+
+    echo -e "${GREEN}[3/3] Désinstallation terminée.${NC}"
+    echo
+    exit 0
+fi
+
+# --- Install mode ---
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  OSC Converter WebApp - Installation  ${NC}"
 echo -e "${GREEN}========================================${NC}"
@@ -24,8 +73,6 @@ if [ "$EUID" -ne 0 ]; then
     echo
     exit 1
 fi
-
-INSTALL_DIR="/opt/osc-converter-webapp"
 
 # Install system dependencies
 echo -e "${GREEN}[1/7] Installing system dependencies...${NC}"
@@ -84,7 +131,7 @@ if [ "$INSTALL_SERVICE" = "y" ] || [ "$INSTALL_SERVICE" = "Y" ]; then
 
     # Update service file with correct path
     sed -i "s|WorkingDirectory=.*|WorkingDirectory=$INSTALL_DIR|g" osc-converter-webapp.service
-    sed -i "s|ExecStart=.*|ExecStart=$INSTALL_DIR/venv/bin/gunicorn --bind 0.0.0.0:$WEB_PORT --workers 1 osc_converter.wsgi:application|g" osc-converter-webapp.service
+    sed -i "s|ExecStart=.*|ExecStart=$INSTALL_DIR/venv/bin/gunicorn --bind 0.0.0.0:$WEB_PORT --workers 1 osc_converter_webapp.wsgi:application|g" osc-converter-webapp.service
 
     # Fix permissions for www-data user (service runs as www-data)
     # SQLite needs write access to the directory for journal/WAL files
