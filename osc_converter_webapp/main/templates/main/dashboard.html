@@ -71,7 +71,7 @@
                             <button type="button" class="btn btn-sm btn-outline-primary" onclick="openConfigModal({{ cfg.pk }})" data-bs-toggle="tooltip" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <form method="post" action="{% url 'config_delete' cfg.pk %}" class="d-inline" onsubmit="return confirm('Delete this configuration?');">
+                            <form method="post" action="{% url 'config_delete' cfg.pk %}" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete">
                                     <i class="bi bi-trash"></i>

@@ -10,7 +10,7 @@ DEVELOPER_EMAIL = 'seb.pav@wanadoo.fr'
 DEVELOPER_GITHUB = 'https://github.com/P4pa-Joe/OSC-Converter-WebApp'
 
 # App Version
-APP_VERSION = '26.318'
+APP_VERSION = '26.318-1809'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

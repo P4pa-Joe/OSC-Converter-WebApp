@@ -201,6 +201,9 @@ def service_restart_config(request, config_pk):
         messages.success(request, f'{config.name} restarted')
     else:
         messages.error(request, f'Error restarting {config.name}')
+    next_url = request.POST.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('dashboard')
 
 
